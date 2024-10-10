@@ -173,7 +173,8 @@ function updateIcon(icon:String) {
     if (iconSprite.animation.exists(icon)) return;
     @:privateAccess iconSprite.animation.clearAnimations();
     */
-    var path:String = Paths.image('icons/$icon');
+    var path:String = Paths.image("icons/" + icon);
+
     if (!Assets.exists(path)) path = Paths.image('icons/face');
 
     iconSprite.loadGraphic(path, true, 150, 150);
@@ -205,7 +206,7 @@ function saveCharacterInfo() {
     xml.set("antialiasing", antialiasingCheckbox.checked ? "true" : "false");
     xml.set("sprite", spriteTextBox.label.text);
     if (iconColorWheel.colorChanged)
-        xml.set("color", iconColorWheel.curColor.toWebString());
+        xml.set("color", iconColorWheel.curColorString);
 
     for (anim in curData.anim)
     {
