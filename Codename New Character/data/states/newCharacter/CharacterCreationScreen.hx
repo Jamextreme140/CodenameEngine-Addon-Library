@@ -10,8 +10,11 @@ import funkin.editors.ui.UINumericStepper;
 import funkin.editors.ui.UICheckbox;
 import funkin.editors.ui.UIColorwheel;
 import funkin.editors.ui.UIButtonList;
+import funkin.editors.ui.UIWarningSubstate;
+import funkin.game.Character;
 
 import haxe.xml.Printer;
+import haxe.io.Path;
 
 import lime.ui.FileDialog;
 import lime.ui.FileDialogType;
@@ -48,6 +51,15 @@ public var closeButton:UIButton;
 
 public var onSave:(xml:Xml) -> Void = null;
 
+var template:String = 
+'<character isPlayer="false" flipX="false" holdTime="4" color="#AF66CE">
+	<anim name="idle"      anim="Dad idle dance"      fps="24" loop="false" x="0" y="0"/>
+	<anim name="singUP"    anim="Dad Sing note UP"    fps="24" loop="false" x="-6" y="50"/>
+	<anim name="singLEFT"  anim="dad sing note right"  fps="24" loop="false" x="-10" y="10"/>
+	<anim name="singRIGHT" anim="Dad Sing Note LEFT" fps="24" loop="false" x="0" y="27"/>
+	<anim name="singDOWN"  anim="Dad Sing Note DOWN"  fps="24" loop="false" x="0" y="-30"/>
+</character>';
+
 var curData = {
     anim: []
 };
@@ -71,6 +83,7 @@ function postCreate() {
     add(title = new UIText(windowSpr.x + 20, windowSpr.y + 30 + 16, 0, "Sprite Data", 28));
 
     spriteTextBox = new UITextBox(title.x, title.y + title.height + 38, 'sprite', 200);
+    spriteTextBox.onChange = (sprite:String) -> {checkSpriteFile(sprite);}
     add(spriteTextBox);
     addLabelOn(spriteTextBox, "Sprite");
 
@@ -82,6 +95,7 @@ function postCreate() {
     updateIcon('face');
 
     gameOverCharTextBox = new UITextBox(iconTextBox.x + 150 + (75 + 12), iconTextBox.y, "bf-dead", 200);
+    gameOverCharTextBox.onChange = (sprite:String) -> {checkSpriteFile(sprite);}
     add(gameOverCharTextBox);
     addLabelOn(gameOverCharTextBox, "Game Over Character");
 
@@ -134,6 +148,15 @@ function postCreate() {
             if(_ != null) addAnim(_);
         }));
     }
+    
+    var tempXML = Xml.parse(template).firstElement();
+    var c:Int = 0;
+    for(i in tempXML.elements()) {
+        var animData = XMLUtil.extractAnimFromXML(i);
+        addAnim(animData, c);
+        c++;
+    }
+
     add(animationsButtonList);
     addLabelOn(animationsButtonList, "Animations");
 
@@ -167,6 +190,18 @@ function postCreate() {
     add(saveButton);
 }
 
+function checkSpriteFile(sprite:String) {
+    if(sprite != null) {
+        var spriteFile = Paths.image("characters/" + sprite); // Common spritesheet file
+        var spriteAtlas = Path.withoutExtension(spriteFile) + "/Animation.json"; // Texture Atlas
+        if(!Assets.exists(spriteFile) && !Assets.exists(spriteAtlas)) {
+            openSubState(new UIWarningSubstate("Missing Sprite file!", "The provided filename doesn't exist or is inaccessible. Try again.", [
+                {label: "Ok", color: 0xFFFF0000, onClick: function(t) {}}
+            ]));
+        }
+    }
+}
+
 function updateIcon(icon:String) {
     if (iconSprite == null) add(iconSprite = new FlxSprite());
     /*
@@ -193,20 +228,22 @@ function saveCharacterInfo() {
         @:privateAccess stepper.__onChange(stepper.label.text);
     */
     var xml = Xml.createElement("character");
-    xml.set("isPlayer", isPlayerCheckbox.checked ? "true" : "false");
-    xml.set("x", Std.string(positionXStepper.value));
-    xml.set("y", Std.string(positionYStepper.value));
-    xml.set("gameOverChar", gameOverCharTextBox.label.text);
-    xml.set("camx", Std.string(cameraXStepper.value));
-    xml.set("camy", Std.string(cameraYStepper.value));
-    xml.set("holdTime", Std.string(singTimeStepper.value));
-    xml.set("flipX", Std.string(flipXCheckbox.checked));
-    xml.set("icon", iconTextBox.label.text);
-    xml.set("scale", Std.string(scaleStepper.value));
-    xml.set("antialiasing", antialiasingCheckbox.checked ? "true" : "false");
-    xml.set("sprite", spriteTextBox.label.text);
+    // Avoids redundant default values
+    if(positionXStepper.value != 0) xml.set("x", Std.string(positionXStepper.value));
+    if(positionYStepper.value != 0) xml.set("y", Std.string(positionYStepper.value));
+    if(gameOverCharTextBox.label.text != Character.FALLBACK_DEAD_CHARACTER) xml.set("gameOverChar", gameOverCharTextBox.label.text);
+    if(cameraXStepper.value != 0) xml.set("camx", Std.string(cameraXStepper.value));
+    if(cameraXStepper.value != 0) xml.set("camy", Std.string(cameraYStepper.value));
+    if(singTimeStepper.value != 4) xml.set("holdTime", Std.string(singTimeStepper.value));
+    if(flipXCheckbox.checked) xml.set("flipX", Std.string(flipXCheckbox.checked));
+    if(scaleStepper.value != 1) xml.set("scale", Std.string(scaleStepper.value));
     if (iconColorWheel.colorChanged)
         xml.set("color", iconColorWheel.curColorString);
+
+    xml.set("isPlayer", isPlayerCheckbox.checked ? "true" : "false");
+    xml.set("icon", iconTextBox.label.text);
+    xml.set("antialiasing", antialiasingCheckbox.checked ? "true" : "false");
+    xml.set("sprite", spriteTextBox.label.text);
 
     for (anim in curData.anim)
     {
