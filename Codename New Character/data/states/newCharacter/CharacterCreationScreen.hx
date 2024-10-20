@@ -45,6 +45,9 @@ public var singTimeStepper:UINumericStepper;
 public var animationsButtonList:UIButtonList<CharacterAnimInfoButton>;
 public var isPlayerCheckbox:UICheckbox;
 public var isGFCheckbox:UICheckbox;
+public var scriptExtension:UITextBox;
+public var isShortLived:UICheckbox;
+public var loadBefore:UICheckbox;
 
 public var saveButton:UIButton;
 public var closeButton:UIButton;
@@ -171,6 +174,16 @@ function postCreate() {
     for (checkbox in [isPlayerCheckbox, isGFCheckbox, antialiasingCheckbox, flipXCheckbox])
         {checkbox.y += 4; checkbox.x += 6;}
 
+    scriptExtension = new UITextBox(250, 388, "", 200);
+    add(scriptExtension);
+    addLabelOn(scriptExtension, "Script Extension");
+
+    isShortLived = new UICheckbox(scriptExtension.x, (scriptExtension.y + scriptExtension.bHeight) + 15, "isShortLived", false);
+    add(isShortLived);
+
+    loadBefore = new UICheckbox(isShortLived.x, isShortLived.y + 30, "loadBefore", true);
+    add(loadBefore);
+
     saveButton = new UIButton(windowSpr.x + windowSpr.bWidth - 20, windowSpr.y + windowSpr.bHeight- 20, "Save & Close", function() {
         buildCharacter();
         //CharacterCreationScreen.instance = null;
@@ -262,6 +275,23 @@ function saveCharacterInfo() {
             animXml.set("indices", CoolUtil.formatNumberRange(anim.indices));
         xml.addChild(animXml);
     }
+
+    if(StringTools.trim(scriptExtension.label.text) != "") {
+        var extXml:Xml = Xml.createElement('extension');
+        var _scriptFile:String = StringTools.trim(scriptExtension.label.text);
+        var _scriptFolder:String = null;
+        var _scriptPath:Array<String> = _scriptFile.split("/");
+        if(_scriptPath.length > 1) {
+            _scriptFile = _scriptPath.pop();
+            _scriptFolder = _scriptPath.join("/") + "/";
+        }
+        extXml.set("script", _scriptFile);
+        if(_scriptFolder != null) extXml.set("folder", _scriptFolder);
+        if(isShortLived.checked) extXml.set("isShortLived", Std.string(isShortLived.checked));
+        if(!loadBefore.checked) extXml.set("loadBefore", Std.string(loadBefore.checked));
+        xml.addChild(extXml);
+    }
+
     // End of writing XML, time to save it
     var data:String = "<!DOCTYPE codename-engine-character>\n" + Printer.print(xml, true);
     var fileDialog = new FileDialog();
@@ -273,7 +303,7 @@ function saveCharacterInfo() {
         FlxG.resetState();
     });
     var fullPath = FileSystem.fullPath(Paths.xml('characters/character'));
-    fileDialog.browse(FileDialogType.SAVE, "*.xml", fullPath);
+    fileDialog.browse(FileDialogType.SAVE, "xml", fullPath);
     if (onSave != null) onSave(xml);
 }
 
