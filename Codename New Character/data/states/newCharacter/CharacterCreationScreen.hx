@@ -54,7 +54,8 @@ public var closeButton:UIButton;
 
 public var onSave:(xml:Xml) -> Void = null;
 
-var template:String = 
+// TODO: choice between player and opponent type character
+var opponentTemplate:String = 
 '<character isPlayer="false" flipX="false" holdTime="4" color="#AF66CE">
 	<anim name="idle"      anim="Dad idle dance"      fps="24" loop="false" x="0" y="0"/>
 	<anim name="singUP"    anim="Dad Sing note UP"    fps="24" loop="false" x="-6" y="50"/>
@@ -71,11 +72,6 @@ function create() {
     winTitle = "Creating Character";
 	winWidth = 1014;
 	winHeight = 600;
-    /*
-    curData = {
-        anim: []
-    };
-    */
 }
 
 function postCreate() {
@@ -146,13 +142,12 @@ function postCreate() {
     animationsButtonList.frames = Paths.getFrames('editors/ui/inputbox');
     animationsButtonList.cameraSpacing = 0;
     animationsButtonList.addButton.callback = function() {
-        //customPropertiesButtonList.add(new PropertyButton("newProperty", "valueHere", customPropertiesButtonList));
         openSubState(new CharacterAnimScreen(null, (_) -> {
             if(_ != null) addAnim(_);
         }));
     }
     
-    var tempXML = Xml.parse(template).firstElement();
+    var tempXML = Xml.parse(opponentTemplate).firstElement();
     var c:Int = 0;
     for(i in tempXML.elements()) {
         var animData = XMLUtil.extractAnimFromXML(i);
@@ -185,8 +180,7 @@ function postCreate() {
     add(loadBefore);
 
     saveButton = new UIButton(windowSpr.x + windowSpr.bWidth - 20, windowSpr.y + windowSpr.bHeight- 20, "Save & Close", function() {
-        buildCharacter();
-        //CharacterCreationScreen.instance = null;
+        saveCharacterInfo();
         close();
     }, 125);
     saveButton.x -= saveButton.bWidth;
@@ -194,7 +188,6 @@ function postCreate() {
 
     closeButton = new UIButton(saveButton.x - 20, saveButton.y, "Close", function() {
         if (onSave != null) onSave(null);
-        //CharacterCreationScreen.instance = null;
         close();
     }, 125);
     closeButton.x -= closeButton.bWidth;
@@ -204,11 +197,17 @@ function postCreate() {
 }
 
 function checkSpriteFile(sprite:String) {
-    if(sprite != null) {
+    var fileExists:Bool = false;
+    if(sprite != null && StringTools.trim(sprite).length > 0) {
         var spriteFile = Paths.image("characters/" + sprite); // Common spritesheet file
         var spriteAtlas = Path.withoutExtension(spriteFile) + "/Animation.json"; // Texture Atlas
-        if(!Assets.exists(spriteFile) && !Assets.exists(spriteAtlas)) {
-            openSubState(new UIWarningSubstate("Missing Sprite file!", "The provided filename doesn't exist or is inaccessible. Try again.", [
+        var spriteMulti = Path.withoutExtension(spriteFile) + "/1.xml"; // Multiple Spritesheets
+        for(sf in [spriteFile, spriteAtlas, spriteMulti]) {
+            if(Assets.exists(sf))
+                fileExists = true;
+        }
+        if(!fileExists) {
+            openSubState(new UIWarningSubstate("Missing Sprite file!", "The provided filename/folder doesn't exist or is inaccessible. Try again.", [
                 {label: "Ok", color: 0xFFFF0000, onClick: function(t) {}}
             ]));
         }
@@ -217,10 +216,7 @@ function checkSpriteFile(sprite:String) {
 
 function updateIcon(icon:String) {
     if (iconSprite == null) add(iconSprite = new FlxSprite());
-    /*
-    if (iconSprite.animation.exists(icon)) return;
-    @:privateAccess iconSprite.animation.clearAnimations();
-    */
+
     var path:String = Paths.image("icons/" + icon);
 
     if (!Assets.exists(path)) path = Paths.image('icons/face');
@@ -236,10 +232,6 @@ function updateIcon(icon:String) {
 }
 
 function saveCharacterInfo() {
-    /*
-    for (stepper in [positionXStepper, positionYStepper, cameraXStepper, cameraYStepper, singTimeStepper, scaleStepper])
-        @:privateAccess stepper.__onChange(stepper.label.text);
-    */
     var xml = Xml.createElement("character");
     // Avoids redundant default values
     if(positionXStepper.value != 0) xml.set("x", Std.string(positionXStepper.value));
@@ -265,7 +257,6 @@ function saveCharacterInfo() {
         animXml.set("anim", anim.anim);
         animXml.set("loop", Std.string(anim.loop));
         animXml.set("fps", Std.string(anim.fps));
-        //var offset:FlxPoint = character.getAnimOffset(anim.name);
         var offset:FlxPoint = FlxPoint.get(anim.x, anim.y);
         animXml.set("x", Std.string(offset.x));
         animXml.set("y", Std.string(offset.y));
@@ -276,6 +267,7 @@ function saveCharacterInfo() {
         xml.addChild(animXml);
     }
 
+    // scriptExtension.label.text.trim() != "";
     if(StringTools.trim(scriptExtension.label.text) != "") {
         var extXml:Xml = Xml.createElement('extension');
         var _scriptFile:String = StringTools.trim(scriptExtension.label.text);
@@ -292,7 +284,6 @@ function saveCharacterInfo() {
         xml.addChild(extXml);
     }
 
-    // End of writing XML, time to save it
     var data:String = "<!DOCTYPE codename-engine-character>\n" + Printer.print(xml, true);
     var fileDialog = new FileDialog();
     fileDialog.onCancel.add(function() close());
@@ -366,13 +357,3 @@ public function deleteAnim(name:String) {
         }
     }
 }
-
-// ???
-function buildCharacter() {
-    saveCharacterInfo();
-}
-/*
-typedef CharacterCreationData = {
-	var anim:Array<AnimData>;
-}
-*/
