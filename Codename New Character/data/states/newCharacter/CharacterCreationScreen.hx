@@ -266,11 +266,20 @@ function checkSpriteFile(sprite:String) {
 function updateIcon(icon:String) {
     if (iconSprite == null) add(iconSprite = new FlxSprite());
 
-    var path:String = Paths.image("icons/" + icon);
+    var path:String = Paths.image("icons/" + icon + "/icon");
+    var oldPath:String = Paths.image("icons/" + icon);
+    var img:String = null;
 
-    if (!Assets.exists(path)) path = Paths.image('icons/face');
+    if(Assets.exists(path)) {
+        img = path;
+    }
+    else if(Assets.exists(oldPath)) {
+        img = oldPath;
+    }
 
-    iconSprite.loadGraphic(path, true, 150, 150);
+    if(img == null) img = Paths.image('icons/face/icon');
+
+    iconSprite.loadGraphic(img, true, 150, 150);
     iconSprite.animation.add(icon, [0], 0, false);
     iconSprite.antialiasing = true;
     iconSprite.animation.play(icon);
