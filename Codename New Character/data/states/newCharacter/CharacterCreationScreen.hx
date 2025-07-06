@@ -351,7 +351,7 @@ function saveCharacterInfo() {
         close();
         FlxG.resetState();
     });
-    var fullPath = FileSystem.fullPath(Paths.xml('characters/character'));
+    var fullPath:String = FileSystem.fullPath(Paths.getAssetsRoot() + '/data/characters/character.xml');
     fileDialog.browse(FileDialogType.SAVE, "xml", fullPath);
     if (onSave != null) onSave(xml);
 }
